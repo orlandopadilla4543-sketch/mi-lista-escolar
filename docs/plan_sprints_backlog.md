@@ -59,7 +59,7 @@ La siguiente calendarización organiza el cierre de la fase. Los días son relat
 | Filtrar tareas completadas | Se mostró la tarea completada correspondiente | Captura del filtro Completadas |
 | Agregar una tarea nueva | El código implementa esta función | Repetir prueba y conservar captura actual |
 | Intentar agregar un título vacío | El código valida el título | Prueba específica pendiente |
-| Mostrar un filtro sin resultados | El código incluye mensajes para listas vacías | Prueba específica pendiente |
+| Mostrar un filtro sin resultados | El código incluye mensajes para listas vacías | Prueba específica realizada |
 | Ejecutar `npm run build` | copilacion sin errores |  ejecutado |
 
 ## 7. Evidencias
