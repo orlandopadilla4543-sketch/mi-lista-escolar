@@ -15,43 +15,81 @@ export default function App() {
 
   function agregarTarea(event) {
     event.preventDefault();
-    if (!titulo.trim()) {
+    const tituloLimpio = titulo.trim();
+
+    if (!tituloLimpio) {
       setMensaje("Escribe el nombre de la tarea antes de agregarla.");
       return;
     }
-    setTareas((actuales) => [
-      ...actuales,
-      { id: Date.now(), titulo: titulo.trim(), materia: materia.trim() || "General", completada: false }
-    ]);
+
+    const nuevaTarea = {
+      id: Date.now(),
+      titulo: tituloLimpio,
+      materia: materia.trim() || "General",
+      completada: false
+    };
+
+    setTareas((actuales) => [...actuales, nuevaTarea]);
     setTitulo("");
     setMateria("");
-    setMensaje("Tarea agregada correctamente.");
+    setFiltro("todas");
+    setMensaje(`La tarea "${nuevaTarea.titulo}" se agregó correctamente.`);
   }
 
   function alternarTarea(id) {
-    setTareas((actuales) => actuales.map((tarea) =>
-      tarea.id === id ? { ...tarea, completada: !tarea.completada } : tarea
-    ));
+    const tareaActual = tareas.find((tarea) => tarea.id === id);
+    if (!tareaActual) return;
+
+    setTareas((actuales) =>
+      actuales.map((tarea) =>
+        tarea.id === id ? { ...tarea, completada: !tarea.completada } : tarea
+      )
+    );
+
+    setMensaje(
+      tareaActual.completada
+        ? `La tarea "${tareaActual.titulo}" volvió a estar pendiente.`
+        : `La tarea "${tareaActual.titulo}" se marcó como completada.`
+    );
   }
 
   function eliminarTarea(id) {
+    const tareaAEliminar = tareas.find((tarea) => tarea.id === id);
+    if (!tareaAEliminar) return;
+
     setTareas((actuales) => actuales.filter((tarea) => tarea.id !== id));
-    setMensaje("Tarea eliminada.");
+    setMensaje(`Se eliminó la tarea "${tareaAEliminar.titulo}".`);
   }
 
-  const tareasFiltradas = useMemo(() => tareas.filter((tarea) => {
-    if (filtro === "pendientes") return !tarea.completada;
-    if (filtro === "completadas") return tarea.completada;
-    return true;
-  }), [tareas, filtro]);
+  const tareasFiltradas = useMemo(() => {
+    if (filtro === "pendientes") {
+      return tareas.filter((tarea) => !tarea.completada);
+    }
+    if (filtro === "completadas") {
+      return tareas.filter((tarea) => tarea.completada);
+    }
+    return tareas;
+  }, [tareas, filtro]);
 
   const completadas = tareas.filter((tarea) => tarea.completada).length;
   const pendientes = tareas.length - completadas;
 
+  function cambiarFiltro(event) {
+    const nuevoFiltro = event.target.value;
+    setFiltro(nuevoFiltro);
+
+    const etiquetas = {
+      todas: "todas las tareas",
+      pendientes: "las tareas pendientes",
+      completadas: "las tareas completadas"
+    };
+    setMensaje(`Filtro aplicado: ${etiquetas[nuevoFiltro]}.`);
+  }
+
   return (
     <main className="contenedor">
       <header className="encabezado">
-        <div className="icono">✓</div>
+        <div className="icono" aria-hidden="true">✓</div>
         <p className="sobrelinea">ORGANIZACIÓN ESCOLAR</p>
         <h1>Mi Lista Escolar</h1>
         <p className="subtitulo">Organiza tus actividades y avanza paso a paso.</p>
@@ -69,48 +107,79 @@ export default function App() {
         </article>
       </section>
 
-      <section className="panel">
-        <h2>Agregar una tarea</h2>
+      <section className="panel" aria-labelledby="titulo-agregar">
+        <h2 id="titulo-agregar">Agregar una tarea</h2>
         <form onSubmit={agregarTarea} className="formulario">
           <label htmlFor="titulo">Nombre de la tarea *</label>
-          <input id="titulo" value={titulo} onChange={(e) => setTitulo(e.target.value)}
-            placeholder="Ej. Leer el material de la unidad" maxLength="100" />
+          <input
+            id="titulo"
+            value={titulo}
+            onChange={(event) => setTitulo(event.target.value)}
+            placeholder="Ej. Leer el material de la unidad"
+            maxLength={100}
+            required
+          />
           <label htmlFor="materia">Materia o categoría</label>
-          <input id="materia" value={materia} onChange={(e) => setMateria(e.target.value)}
-            placeholder="Ej. Desarrollo web" maxLength="50" />
+          <input
+            id="materia"
+            value={materia}
+            onChange={(event) => setMateria(event.target.value)}
+            placeholder="Ej. Desarrollo web"
+            maxLength={50}
+          />
           <button type="submit" className="boton-principal">+ Agregar tarea</button>
         </form>
-        {mensaje && <p className="mensaje" role="status">{mensaje}</p>}
+        {mensaje && <p className="mensaje" role="status" aria-live="polite">{mensaje}</p>}
       </section>
 
-      <section className="panel">
+      <section className="panel" aria-labelledby="titulo-lista">
         <div className="titulo-lista">
-          <h2>Mis actividades</h2>
-          <label className="filtro-label" htmlFor="filtro">Mostrar:
-            <select id="filtro" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-              <option value="todas">Todas</option>
-              <option value="pendientes">Pendientes</option>
-              <option value="completadas">Completadas</option>
+          <h2 id="titulo-lista">Mis actividades</h2>
+          <label className="filtro-label" htmlFor="filtro">
+            Mostrar:
+            <select id="filtro" value={filtro} onChange={cambiarFiltro}>
+              <option value="todas">Todas ({tareas.length})</option>
+              <option value="pendientes">Pendientes ({pendientes})</option>
+              <option value="completadas">Completadas ({completadas})</option>
             </select>
           </label>
         </div>
 
         {tareasFiltradas.length === 0 ? (
-          <div className="vacio">No hay tareas en esta categoría.</div>
+          <div className="vacio" role="status">
+            {tareas.length === 0
+              ? "Todavía no hay tareas. Agrega una para comenzar."
+              : filtro === "pendientes"
+                ? "No hay tareas pendientes."
+                : filtro === "completadas"
+                  ? "No hay tareas completadas."
+                  : "No hay tareas en esta categoría."}
+          </div>
         ) : (
           <ul className="lista">
             {tareasFiltradas.map((tarea) => (
               <li className={`tarea ${tarea.completada ? "hecha" : ""}`} key={tarea.id}>
                 <label className="tarea-info">
-                  <input type="checkbox" checked={tarea.completada}
-                    onChange={() => alternarTarea(tarea.id)} />
+                  <input
+                    type="checkbox"
+                    checked={tarea.completada}
+                    onChange={() => alternarTarea(tarea.id)}
+                    aria-label={`Marcar "${tarea.titulo}" como ${tarea.completada ? "pendiente" : "completada"}`}
+                  />
                   <span>
                     <strong>{tarea.titulo}</strong>
                     <small>{tarea.materia}</small>
                   </span>
                 </label>
-                <button className="boton-eliminar" onClick={() => eliminarTarea(tarea.id)}
-                  aria-label={`Eliminar ${tarea.titulo}`} title="Eliminar tarea">Eliminar</button>
+                <button
+                  type="button"
+                  className="boton-eliminar"
+                  onClick={() => eliminarTarea(tarea.id)}
+                  aria-label={`Eliminar ${tarea.titulo}`}
+                  title="Eliminar tarea"
+                >
+                  Eliminar
+                </button>
               </li>
             ))}
           </ul>
