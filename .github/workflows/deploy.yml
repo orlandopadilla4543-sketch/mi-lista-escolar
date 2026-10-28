@@ -1,9 +1,11 @@
 
+
 name: Deploy Mi Lista Escolar to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -12,7 +14,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
@@ -32,8 +34,6 @@ jobs:
 
       - name: Compilar React y Vite
         run: npm run build
-        env:
-          BASE_PATH: /mi-lista-escolar/
 
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
