@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const tareasIniciales = [
   { id: 1, titulo: "Revisar las instrucciones de la actividad", materia: "Organización", completada: true },
@@ -6,12 +6,41 @@ const tareasIniciales = [
   { id: 3, titulo: "Preparar evidencias para la entrega", materia: "Pendiente", completada: false }
 ];
 
+const CLAVE_ALMACENAMIENTO = "mi-lista-escolar-tareas-v1";
+
+function cargarTareas() {
+  try {
+    const guardadas = localStorage.getItem(CLAVE_ALMACENAMIENTO);
+    if (guardadas === null) return tareasIniciales;
+    const datos = JSON.parse(guardadas);
+    if (!Array.isArray(datos)) return tareasIniciales;
+
+    return datos.filter((tarea) =>
+      tarea &&
+      (typeof tarea.id === "number" || typeof tarea.id === "string") &&
+      typeof tarea.titulo === "string" &&
+      typeof tarea.materia === "string" &&
+      typeof tarea.completada === "boolean"
+    );
+  } catch {
+    return tareasIniciales;
+  }
+}
+
 export default function App() {
-  const [tareas, setTareas] = useState(tareasIniciales);
+  const [tareas, setTareas] = useState(cargarTareas);
   const [titulo, setTitulo] = useState("");
   const [materia, setMateria] = useState("");
   const [filtro, setFiltro] = useState("todas");
   const [mensaje, setMensaje] = useState("");
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CLAVE_ALMACENAMIENTO, JSON.stringify(tareas));
+    } catch {
+      setMensaje("No se pudieron guardar los cambios en este navegador.");
+    }
+  }, [tareas]);
 
   function agregarTarea(event) {
     event.preventDefault();
@@ -113,20 +142,30 @@ export default function App() {
           <label htmlFor="titulo">Nombre de la tarea *</label>
           <input
             id="titulo"
+            name="titulo"
+            type="text"
             value={titulo}
             onChange={(event) => setTitulo(event.target.value)}
             placeholder="Ej. Leer el material de la unidad"
             maxLength={100}
             required
+            aria-describedby="ayuda-titulo"
           />
+          <small id="ayuda-titulo" className="ayuda">Máximo 100 caracteres.</small>
+
           <label htmlFor="materia">Materia o categoría</label>
           <input
             id="materia"
+            name="materia"
+            type="text"
             value={materia}
             onChange={(event) => setMateria(event.target.value)}
             placeholder="Ej. Desarrollo web"
             maxLength={50}
+            aria-describedby="ayuda-materia"
           />
+          <small id="ayuda-materia" className="ayuda">Máximo 50 caracteres. Si lo dejas vacío, se usará “General”.</small>
+
           <button type="submit" className="boton-principal">+ Agregar tarea</button>
         </form>
         {mensaje && <p className="mensaje" role="status" aria-live="polite">{mensaje}</p>}
@@ -137,7 +176,7 @@ export default function App() {
           <h2 id="titulo-lista">Mis actividades</h2>
           <label className="filtro-label" htmlFor="filtro">
             Mostrar:
-            <select id="filtro" value={filtro} onChange={cambiarFiltro}>
+            <select id="filtro" name="filtro" value={filtro} onChange={cambiarFiltro}>
               <option value="todas">Todas ({tareas.length})</option>
               <option value="pendientes">Pendientes ({pendientes})</option>
               <option value="completadas">Completadas ({completadas})</option>
